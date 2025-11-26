@@ -39,7 +39,7 @@ async def test_local_runtime_read_and_write_file(tmp_path):
 
     content = "test file content\nline 2"
     await runtime.write_file("test.txt", content)
-    
+
     read_content = await runtime.read_file("test.txt")
     assert read_content == content
 
@@ -54,11 +54,11 @@ async def test_local_runtime_read_file_with_range(tmp_path):
 
     content = "0123456789"
     await runtime.write_file("test.txt", content)
-    
+
     # Read from start to end
     read_content = await runtime.read_file("test.txt", 0, -1)
     assert read_content == content
-    
+
     # Read subset
     read_content = await runtime.read_file("test.txt", 2, 7)
     assert read_content == "23456"

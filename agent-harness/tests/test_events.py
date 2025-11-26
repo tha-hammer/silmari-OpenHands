@@ -21,7 +21,7 @@ async def test_event_to_dict():
     event._id = 1
     event._source = EventSource.AGENT
     event._message = "test message"
-    
+
     event_dict = event.to_dict()
     assert event_dict["id"] == 1
     assert event_dict["source"] == "agent"

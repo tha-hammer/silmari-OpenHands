@@ -1,7 +1,9 @@
 """Agent base class for agent harness."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Optional
 
 from agent_harness.config import HarnessConfig
 from agent_harness.events.event import EventSource
@@ -43,14 +45,14 @@ class Agent(ABC):
         self._complete = value
 
     @abstractmethod
-    async def step(self, event: Any) -> Any:
+    async def step(self, state: "State") -> "Action":
         """Execute one step of the agent.
 
         Args:
-            event: Input event
+            state: Current agent state
 
         Returns:
-            Output event or observation
+            Action to execute
         """
         pass
 

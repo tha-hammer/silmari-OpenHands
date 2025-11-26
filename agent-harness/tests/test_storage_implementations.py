@@ -24,10 +24,10 @@ async def test_local_storage_save_and_load_event(tmp_path):
 async def test_local_storage_save_and_load_file(tmp_path):
     """Test LocalStorage can save and load files."""
     storage = LocalStorage(base_path=str(tmp_path / "test-harness"))
-    
+
     content = b"test file content"
     await storage.save_file("test/file.txt", content)
-    
+
     loaded_content = await storage.load_file("test/file.txt")
     assert loaded_content == content
 
@@ -36,11 +36,11 @@ async def test_local_storage_save_and_load_file(tmp_path):
 async def test_local_storage_list_files(tmp_path):
     """Test LocalStorage can list files."""
     storage = LocalStorage(base_path=str(tmp_path / "test-harness"))
-    
+
     await storage.save_file("dir1/file1.txt", b"content1")
     await storage.save_file("dir1/file2.txt", b"content2")
     await storage.save_file("dir2/file3.txt", b"content3")
-    
+
     files = await storage.list_files("dir1")
     assert len(files) == 2
     assert "dir1/file1.txt" in files
@@ -66,10 +66,10 @@ async def test_memory_storage_save_and_load_event():
 async def test_memory_storage_save_and_load_file():
     """Test MemoryStorage can save and load files."""
     storage = MemoryStorage()
-    
+
     content = b"test file content"
     await storage.save_file("test/file.txt", content)
-    
+
     loaded_content = await storage.load_file("test/file.txt")
     assert loaded_content == content
 
@@ -78,11 +78,11 @@ async def test_memory_storage_save_and_load_file():
 async def test_memory_storage_list_files():
     """Test MemoryStorage can list files."""
     storage = MemoryStorage()
-    
+
     await storage.save_file("dir1/file1.txt", b"content1")
     await storage.save_file("dir1/file2.txt", b"content2")
     await storage.save_file("dir2/file3.txt", b"content3")
-    
+
     files = await storage.list_files("dir1")
     assert len(files) == 2
     assert "dir1/file1.txt" in files
@@ -93,7 +93,7 @@ async def test_memory_storage_list_files():
 async def test_memory_storage_load_nonexistent_file():
     """Test MemoryStorage raises FileNotFoundError for nonexistent files."""
     storage = MemoryStorage()
-    
+
     with pytest.raises(FileNotFoundError):
         await storage.load_file("nonexistent.txt")
 

@@ -50,7 +50,7 @@ class State:
             }
             pickled = pickle.dumps(state_dict)
             encoded = base64.b64encode(pickled).decode('utf-8')
-            
+
             await storage.save_file(
                 f"sessions/{session_id}/state.pkl", encoded.encode('utf-8')
             )
@@ -76,7 +76,7 @@ class State:
             encoded = await storage.load_file(f"sessions/{session_id}/state.pkl")
             pickled = base64.b64decode(encoded)
             state_dict = pickle.loads(pickled)
-            
+
             state = State(
                 session_id=state_dict.get("session_id", session_id),
                 inputs=state_dict.get("inputs", {}),
