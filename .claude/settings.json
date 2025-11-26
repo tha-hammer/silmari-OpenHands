@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(silmari-oracle metadata)",
+      "Bash(./silmari-oracle metadata)",
+      "Bash(bash silmari-oracle metadata)"
+    ]
+  },
+  "enableAllProjectMcpServers": false
+}

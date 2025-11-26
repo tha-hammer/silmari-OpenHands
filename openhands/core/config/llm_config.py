@@ -94,6 +94,10 @@ class LLMConfig(BaseModel):
         description='Safety settings for models that support them (like Mistral AI and Gemini)',
     )
     for_routing: bool = Field(default=False)
+    use_baml: bool = Field(
+        default=False,
+        description='Whether to use BAML (Boundary AI Markup Language) for LLM calls instead of direct LiteLLM calls. BAML provides type-safe LLM interactions with enhanced tool parameter formatting. When enabled, automatically falls back to LiteLLM if unavailable or on errors. See openhands/llm/BAML.md for more information.',
+    )
 
     model_config = ConfigDict(extra='forbid')
 

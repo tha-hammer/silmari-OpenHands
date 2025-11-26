@@ -9,7 +9,7 @@ OpenHands uses a flexible configuration system that allows settings to be define
 The main configuration classes are:
 
 - `AppConfig`: The root configuration class
-- `LLMConfig`: Configuration for the Language Model
+- `LLMConfig`: Configuration for the Language Model (see [BAML Integration](../../llm/BAML.md) for BAML support)
 - `AgentConfig`: Configuration for the agent
 - `SandboxConfig`: Configuration for the sandbox environment
 - `SecurityConfig`: Configuration for security settings

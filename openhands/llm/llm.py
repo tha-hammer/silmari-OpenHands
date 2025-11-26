@@ -40,6 +40,13 @@ from openhands.llm.retry_mixin import RetryMixin
 
 __all__ = ['LLM']
 
+# Import BAML adapter (optional)
+try:
+    from openhands.llm.baml_adapter import call_baml_completion
+except ImportError:
+    # BAML adapter not available
+    call_baml_completion = None
+
 # tuple of exceptions to retry on
 LLM_RETRY_EXCEPTIONS: tuple[type[Exception], ...] = (
     APIConnectionError,
@@ -84,6 +91,22 @@ class LLM(RetryMixin, DebugMixin):
         self.model_info: ModelInfo | None = None
         self._function_calling_active: bool = False
         self.retry_listener = retry_listener
+
+        # Store BAML flag
+        self.use_baml = config.use_baml
+
+        # If using BAML, set up environment variables for BAML client
+        if self.use_baml:
+            # Always set BAML_API_KEY, even if None (use empty string for local LLMs like Ollama)
+            if self.config.api_key:
+                os.environ['BAML_API_KEY'] = self.config.api_key.get_secret_value()
+            else:
+                os.environ['BAML_API_KEY'] = ''  # Empty string for local LLMs
+            if self.config.base_url:
+                os.environ['BAML_BASE_URL'] = self.config.base_url
+            if self.config.model:
+                os.environ['BAML_MODEL'] = self.config.model
+
         if self.config.log_completions:
             if self.config.log_completions_folder is None:
                 raise RuntimeError(
@@ -316,19 +339,37 @@ class LLM(RetryMixin, DebugMixin):
             start_time = time.time()
             # we don't support streaming here, thus we get a ModelResponse
 
-            # Suppress httpx deprecation warnings during LiteLLM calls
-            # This prevents the "Use 'content=<...>' to upload raw bytes/text content" warning
-            # that appears when LiteLLM makes HTTP requests to LLM providers
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    'ignore', category=DeprecationWarning, module='httpx.*'
-                )
-                warnings.filterwarnings(
-                    'ignore',
-                    message=r'.*content=.*upload.*',
-                    category=DeprecationWarning,
-                )
-                resp: ModelResponse = self._completion_unwrapped(*args, **kwargs)
+            # Route to BAML if enabled
+            resp: ModelResponse
+            if self.use_baml and call_baml_completion is not None:
+                try:
+                    # Prepare kwargs for BAML
+                    baml_kwargs = {
+                        'temperature': kwargs.get('temperature'),
+                        'max_completion_tokens': kwargs.get('max_completion_tokens') or kwargs.get('max_tokens'),
+                        'max_tokens': kwargs.get('max_completion_tokens') or kwargs.get('max_tokens'),
+                        'top_p': kwargs.get('top_p'),
+                        'top_k': kwargs.get('top_k'),
+                        'seed': kwargs.get('seed'),
+                        'stop': kwargs.get('stop')
+                    }
+
+                    # Call BAML completion
+                    resp = call_baml_completion(
+                        messages=messages,
+                        tools=kwargs.get('tools'),
+                        **baml_kwargs
+                    )
+                    logger.debug('BAML completion successful')
+                except Exception as e:
+                    logger.warning(f'BAML completion failed, falling back to LiteLLM: {e}')
+                    # Fall back to LiteLLM
+                    self.use_baml = False
+                    # Continue with existing LiteLLM code below
+                    resp = self._call_litellm_completion(*args, **kwargs)
+            else:
+                # Use LiteLLM (default or fallback)
+                resp = self._call_litellm_completion(*args, **kwargs)
 
             # Calculate and record latency
             latency = time.time() - start_time
@@ -408,6 +449,26 @@ class LLM(RetryMixin, DebugMixin):
             return resp
 
         self._completion = wrapper
+
+    def _call_litellm_completion(self, *args: Any, **kwargs: Any) -> ModelResponse:
+        """Call LiteLLM completion with proper warning suppression.
+
+        This is a helper method to avoid code duplication between
+        BAML and LiteLLM paths.
+        """
+        # Suppress httpx deprecation warnings during LiteLLM calls
+        # This prevents the "Use 'content=<...>' to upload raw bytes/text content" warning
+        # that appears when LiteLLM makes HTTP requests to LLM providers
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                'ignore', category=DeprecationWarning, module='httpx.*'
+            )
+            warnings.filterwarnings(
+                'ignore',
+                message=r'.*content=.*upload.*',
+                category=DeprecationWarning,
+            )
+            return self._completion_unwrapped(*args, **kwargs)
 
     @property
     def completion(self) -> Callable:

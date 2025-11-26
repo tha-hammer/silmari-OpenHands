@@ -13,6 +13,13 @@ from openhands.llm.llm import (
 from openhands.llm.model_features import get_features
 from openhands.utils.shutdown_listener import should_continue
 
+# Import BAML adapter (optional)
+try:
+    from openhands.llm.baml_adapter import call_baml_completion_async
+except ImportError:
+    # BAML adapter not available
+    call_baml_completion_async = None
+
 
 class AsyncLLM(LLM):
     """Asynchronous LLM class."""
@@ -67,7 +74,20 @@ class AsyncLLM(LLM):
                 kwargs['reasoning_effort'] = self.config.reasoning_effort
 
             # ensure we work with a list of messages
-            messages = messages if isinstance(messages, list) else [messages]
+            messages_list = messages if isinstance(messages, list) else [messages]
+
+            # Format Message objects to dict format if needed (LiteLLM expects dicts)
+            from openhands.core.message import Message
+            from typing import cast
+            if messages_list and isinstance(messages_list[0], Message):
+                messages = self.format_messages_for_llm(
+                    cast(list[Message], messages_list)
+                )
+            else:
+                messages = cast(list[dict[str, Any]], messages_list)
+
+            # Update kwargs with converted messages
+            kwargs['messages'] = messages
 
             # if we have no messages, something went very wrong
             if not messages:
@@ -90,8 +110,38 @@ class AsyncLLM(LLM):
             stop_check_task = asyncio.create_task(check_stopped())
 
             try:
-                # Directly call and await litellm_acompletion
-                resp = await async_completion_unwrapped(*args, **kwargs)
+                # Route to BAML if enabled
+                resp: dict[str, Any]
+                if self.use_baml and call_baml_completion_async is not None:
+                    try:
+                        # Prepare kwargs for BAML
+                        baml_kwargs = {
+                            'temperature': kwargs.get('temperature'),
+                            'max_completion_tokens': kwargs.get('max_completion_tokens') or kwargs.get('max_tokens'),
+                            'max_tokens': kwargs.get('max_completion_tokens') or kwargs.get('max_tokens'),
+                            'top_p': kwargs.get('top_p'),
+                            'top_k': kwargs.get('top_k'),
+                            'seed': kwargs.get('seed'),
+                            'stop': kwargs.get('stop')
+                        }
+
+                        # Call BAML completion asynchronously
+                        baml_resp = await call_baml_completion_async(
+                            messages=messages,
+                            tools=kwargs.get('tools'),
+                            **baml_kwargs
+                        )
+                        # Convert ModelResponse to dict format for compatibility
+                        resp = baml_resp.model_dump() if hasattr(baml_resp, 'model_dump') else dict(baml_resp)
+                        logger.debug('BAML async completion successful')
+                    except Exception as e:
+                        logger.warning(f'BAML async completion failed, falling back to LiteLLM: {e}')
+                        # Fall back to LiteLLM
+                        self.use_baml = False
+                        resp = await async_completion_unwrapped(*args, **kwargs)
+                else:
+                    # Use LiteLLM (default or fallback)
+                    resp = await async_completion_unwrapped(*args, **kwargs)
 
                 message_back = resp['choices'][0]['message']['content']
                 self.log_response(message_back)

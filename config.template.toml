@@ -211,6 +211,12 @@ model = "gpt-4o"
 # ]
 #safety_settings = []
 
+# Whether to use BAML (Boundary AI Markup Language) for LLM calls instead of direct LiteLLM calls.
+# BAML provides type-safe LLM interactions with enhanced tool parameter formatting.
+# When enabled, BAML automatically falls back to LiteLLM if unavailable or on errors.
+# See openhands/llm/BAML.md for more information.
+#use_baml = false
+
 [llm.draft_editor]
 # The number of times llm_editor tries to fix an error when editing.
 correct_num = 5
