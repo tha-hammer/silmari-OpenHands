@@ -4,17 +4,17 @@ This module provides functions to convert between harness message format
 and BAML's format, and to convert BAML responses back to ModelResponse format.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 try:
-    from agent_harness.baml_client.baml_client.sync_client import b
-    from agent_harness.baml_client.baml_client.async_client import b as async_b
-    from agent_harness.baml_client.baml_client import types as baml_types
+    from agent_harness.baml_client.baml_client.sync_client import b  # type: ignore
+    from agent_harness.baml_client.baml_client.async_client import b as async_b  # type: ignore
+    from agent_harness.baml_client.baml_client import types as baml_types  # type: ignore
 except ImportError:
     # BAML client not available
-    b = None
-    async_b = None
-    baml_types = None
+    b: Optional[Any] = None  # type: ignore[assignment]
+    async_b: Optional[Any] = None  # type: ignore[assignment]
+    baml_types: Optional[Any] = None  # type: ignore[assignment]
 
 from agent_harness.utils.logging import setup_logger
 

@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from agent_harness.config import HarnessConfig
 from agent_harness.events.event import EventSource
 from agent_harness.utils.logging import setup_logger
+
+if TYPE_CHECKING:
+    from agent_harness.core.state import State
+    from agent_harness.events.action import Action
 
 logger = setup_logger()
 
